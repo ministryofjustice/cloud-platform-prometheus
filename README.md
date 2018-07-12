@@ -195,7 +195,7 @@ To remove an alarm, grab the prometheusrule name and use:
 
 ## How to expose Prometheus UI and add oauth proxy
 
-There are two files needed to expose a Prometheus instance to the Internet and then (probably most cruicially) force GitHub authentication.
+There are two manifest files needed to expose a Prometheus instance to the Internet and then (probably most crucially) force GitHub authentication. For more information about how this works, please refer to the [documentation for nginx-ingress](https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/auth/oauth-external-auth).
 
 1. Before you begin, you MUST create a [custom GitHub OAuth application](https://github.com/settings/applications/new).
 #### Fields
@@ -207,26 +207,15 @@ There are two files needed to expose a Prometheus instance to the Internet and t
 **Important**¬
 >You must transfer ownership of the GitHub oauth application to the `ministryofjustice` orginisation. You simply click the "Transfer ownership" button within the app and follow the instructions. Only admins of the orginisation have access to accept ownership.
 
-2. You must configure the `./monitoring/helm/kube-prometheus/oauth2_proxy.yaml` file. It should look like the example below:
-```bash
-- --provider=github
-- --github-org=mycompanyname                                          # this would be your organisation name in github
-- --github-team=myteamname                                            # this is the team name with the orgranisation
-- --email-domain=*
-- --upstream=file:///dev/null
-- --http-address=0.0.0.0:4180
-- --client-id=jdkshgksdhkh33878ifjd                                   # GitHub oauth application client ID
-- --client-secret=dkhsfkhskjdfk33                                     # Gihub oauth app client secret
-- --cookie-secret=lskdfhoh3ii35                                       # randomly generated 16 char string
-- --redirect-url=https://prometheus.test-cluster.example.io/oauth2    # the FQDN in your ingress file
-```
+1. Now customise the contents of `./monitoring/prometheus-ingress.yaml`. Changing the `host` value for the `Ingress` resources. This will look like: `prometheus.apps.cluster.dsd.io`
 
-3. Now customise the contents of `./monitoring/helm/kube-prometheus/ingress.yaml`. Changing the `host` value only. This will look like:
-`prometheus.apps.cluster.dsd.io`
+1. You must configure the `oauth2_proxy` `Deployment` as well. Set `-github-org` and `-github-team` accordingly.
 
-4. Deploy the `oauth2-proxy.yaml` and `ingress.yaml` manifests:
+1. Finally, set the values in the `Secret`, defined in `./monitoring/prometheus-ingress-secret.yaml` (these should be `base64` encoded)
+
+1. Apply the manifests:
 ```bash
-$ kubectl create -f ./monitoring/helm/kube-prometheus/ingress.yaml,./monitoring/helm/kube-prometheus/oauth2_proxy.yaml
+$ kubectl create -f ./monitoring/prometheus-ingress.yaml -f ./monitoring/prometheus-ingress-secret.yaml
 ```
 
 5. Test the auth integration by accessing the configured URL.
