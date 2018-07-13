@@ -1,6 +1,6 @@
 # Cloud Platform Prometheus
 
-This repository will allow you to create a monitoring namespace in a MoJ Cloud Platform cluster. It will also contain the neseccary values to perform an installation of Prometheus-Operator and Kube-Prometheus. 
+This repository will allow you to create a monitoring namespace in a MoJ Cloud Platform cluster. It will also contain the neseccary values to perform an installation of Prometheus-Operator and Kube-Prometheus.
 
   - [Pre-reqs](#pre-reqs)
   - [Creating a monitoring namespace](#creating-a-monitoring-namespace)
@@ -39,7 +39,7 @@ $ kubectl port-forward -n monitoring alertmanager-kube-prometheus-0 9093
 It is assumed that you have authenticated to an MoJ Cloud-Platform Cluster and you have Helm installed and configured.
 
 ## Creating a monitoring namespace
-To create a monitoring namespace you will need to copy the `./monitoring` directory in this repository to a branch in the [Cloud-Plarform-Environments](https://github.com/ministryofjustice/cloud-platform-environments/tree/master/namespaces). Once this branch has been reviewed and merged to `master` a pipeline is kicked off, creating a namespace called `monitoring`. 
+To create a monitoring namespace you will need to copy the `./monitoring` directory in this repository to a branch in the [Cloud-Plarform-Environments](https://github.com/ministryofjustice/cloud-platform-environments/tree/master/namespaces). Once this branch has been reviewed and merged to `master` a pipeline is kicked off, creating a namespace called `monitoring`.
 
 ## Installing Prometheus-Operator
 > The mission of the Prometheus Operator is to make running Prometheus
@@ -64,12 +64,12 @@ $ kubectl get pods -n monitoring
 Prometheus is an open source toolkit to monitor and alert, inspired by Google Borg Monitor. It was previously developed by SoundCloud and afterwards donated to the CNCF.
 
 To install kube-prometheus, run:
-```bash 
+```bash
 $ helm install coreos/kube-prometheus --name kube-prometheus --set global.rbacEnable=true --namespace monitoring -f ./monitoring/helm/kube-prometheus/values.yaml
 ```
 
 ## Installing AlertManager
-> The Alertmanager handles alerts sent by client applications such as the Prometheus server. It takes care of deduplicating, grouping, and routing   them to the correct receiver integration such as email or PagerDuty. It also takes care of silencing and inhibition of alerts - 
+> The Alertmanager handles alerts sent by client applications such as the Prometheus server. It takes care of deduplicating, grouping, and routing   them to the correct receiver integration such as email or PagerDuty. It also takes care of silencing and inhibition of alerts -
 > [https://prometheus.io/docs/alerting/alertmanager/](https://prometheus.io/docs/alerting/alertmanager/)
 
 AlertManager can be installed (using a sub-chart) as part of the installtion of Kube-Prometheus.
@@ -81,10 +81,10 @@ deployAlertManager: true
 ```
 ## Configuring AlertManager to send alerts to PagerDuty
 
-Make note of the `service_key:` key on the Kube-Prometheus `values.yaml` file. 
+Make note of the `service_key:` key on the Kube-Prometheus `values.yaml` file.
 
 ```yaml
-# Add PagerDuty key to allow integration with a PD service. 
+# Add PagerDuty key to allow integration with a PD service.
     - name: 'pager-duty-high-priority'
       pagerduty_configs:
       - service_key: "$KEY"
@@ -99,7 +99,7 @@ This is a quick guide on how to retrive your service key from PagerDuty by follo
 
 2) Go to the **Configuration** menu and select **Services**.
 
-3) On the Services page: 
+3) On the Services page:
 
     * If you are creating a new service for your integration, click **Add New Service**.
 
@@ -126,7 +126,7 @@ Slack intergration is enabled using the kube-prometheus values.yaml file:
         send_resolved: True
 ```
 
-Follow the [official slack documentation](https://api.slack.com/incoming-webhooks) to create the `api_url:` and fill in the `channel:` with the name of the slack channel that will recieve the notifications. 
+Follow the [official slack documentation](https://api.slack.com/incoming-webhooks) to create the `api_url:` and fill in the `channel:` with the name of the slack channel that will recieve the notifications.
 
 ## Installing Exporter-Kubelets
 Exporter-Kubelets is a simple service that enables container metrics to be scraped by prometheus.
@@ -179,7 +179,7 @@ spec:
 
 The example PrometheusRule always immediately triggers an alert, which is only for demonstration purposes. To validate that everything is working properly have a look at each of the Prometheus web UIs.
 
-The directory `./custom-alerts` contains the manifest files for applying rules to your Prometheus alarms. 
+The directory `./custom-alerts` contains the manifest files for applying rules to your Prometheus alarms.
 
 To see the current rules applied to your Prometheus instance, run:
 
@@ -195,7 +195,7 @@ To remove an alarm, grab the prometheusrule name and use:
 
 ## How to expose Prometheus UI and add oauth proxy
 
-There are two files needed to expose a Prometheus instance to the Internet and then (probably most cruicially) force GitHub authentication. 
+There are two manifest files needed to expose a Prometheus instance to the Internet and then (probably most crucially) force GitHub authentication. For more information about how this works, please refer to the [documentation for nginx-ingress](https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/auth/oauth-external-auth).
 
 1. Before you begin, you MUST create a [custom GitHub OAuth application](https://github.com/settings/applications/new).
 #### Fields
@@ -207,26 +207,15 @@ There are two files needed to expose a Prometheus instance to the Internet and t
 **Important**¬
 >You must transfer ownership of the GitHub oauth application to the `ministryofjustice` orginisation. You simply click the "Transfer ownership" button within the app and follow the instructions. Only admins of the orginisation have access to accept ownership.
 
-2. You must configure the `./monitoring/helm/kube-prometheus/oauth2_proxy.yaml` file. It should look like the example below:
-```bash
-- --provider=github
-- --github-org=mycompanyname                                          # this would be your organisation name in github
-- --github-team=myteamname                                            # this is the team name with the orgranisation
-- --email-domain=*
-- --upstream=file:///dev/null
-- --http-address=0.0.0.0:4180
-- --client-id=jdkshgksdhkh33878ifjd                                   # GitHub oauth application client ID
-- --client-secret=dkhsfkhskjdfk33                                     # Gihub oauth app client secret
-- --cookie-secret=lskdfhoh3ii35                                       # randomly generated 16 char string
-- --redirect-url=https://prometheus.test-cluster.example.io/oauth2    # the FQDN in your ingress file
-```
+1. Now customise the contents of `./monitoring/prometheus-ingress.yaml`. Changing the `host` value for the `Ingress` resources. This will look like: `prometheus.apps.cluster.dsd.io`
 
-3. Now customise the contents of `./monitoring/helm/kube-prometheus/ingress.yaml`. Changing the `host` value only. This will look like:
-`prometheus.apps.cluster.dsd.io`
+1. You must configure the `oauth2_proxy` `Deployment` as well. Set `-github-org` and `-github-team` accordingly.
 
-4. Deploy the `oauth2-proxy.yaml` and `ingress.yaml` manifests:
+1. Finally, set the values in the `Secret`, defined in `./monitoring/prometheus-ingress-secret.yaml` (these should be `base64` encoded)
+
+1. Apply the manifests:
 ```bash
-$ kubectl create -f ./monitoring/helm/kube-prometheus/ingress.yaml,./monitoring/helm/kube-prometheus/oauth2_proxy.yaml
+$ kubectl create -f ./monitoring/prometheus-ingress.yaml -f ./monitoring/prometheus-ingress-secret.yaml
 ```
 
 5. Test the auth integration by accessing the configured URL.
@@ -236,7 +225,3 @@ If you need to uninstall kube-prometheus and the prometheus-operator then you wi
 ```bash
 $ helm del --purge kube-prometheus && helm del --purge prometheus-operator
 ```
-
-
-
-
